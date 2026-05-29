@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin/JS
+kotlin-js-store/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Claude: override the global ~/.gitignore_global rule that ignores .claude/
+# so .claude config is tracked here, but exclude local-only files.
+!.claude/
+.claude/settings.local.json
+**/*.local.md
