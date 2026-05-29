@@ -18,9 +18,12 @@ class Sfx private constructor(
     private val shootSound: Sound,
     private val popSound: Sound,
 ) {
-    fun shoot() { shootSound.playNoCancel() }
+    /** When muted, plays are skipped so no sound effects are heard. */
+    var muted = false
 
-    fun pop() { popSound.playNoCancel() }
+    fun shoot() { if (!muted) shootSound.playNoCancel() }
+
+    fun pop() { if (!muted) popSound.playNoCancel() }
 
     companion object {
         suspend fun create(): Sfx = Sfx(

@@ -57,10 +57,8 @@ class GameScene : Scene() {
     private val playerWidth = 40.0
     private val playerHeight = 28.0
     private val bulletSpeed = 460.0       // px/s, travels up
-    private val enemySpeed = 50.0         // px/s, drifts down
     private val enemySize = 46.0
-    private val spawnInterval = 1.6       // seconds between spawns
-    private val maxNameLength = 8
+    private val maxNameLength = 8         // balloon fall speed and spawn rate now come from the level config
 
     private val state = GameState()
     private val bullets = mutableListOf<SolidRect>()
@@ -72,6 +70,8 @@ class GameScene : Scene() {
     private var elapsedMs = 0.0
     private var phase = Phase.INTRO
     private var typedName = ""
+    private var shownLevel = 1            // last level announced, so the level-up flash fires once
+    private var muted = false
 
     private lateinit var world: SContainer
     private lateinit var sfx: Sfx
@@ -101,8 +101,8 @@ class GameScene : Scene() {
         player = playerShip(playerWidth, playerHeight)
             .xy((hudWidth + screenWidth - playerWidth) / 2, screenHeight - 40)
         message = text("", textSize = 20.0, color = RetroTheme.amber, font = RetroTheme.font)
-        hint = text("Q QUIT\nL LEADERBOARD", textSize = 8.0, color = RetroTheme.dim, font = RetroTheme.font)
-            .xy(14, screenHeight - 44)   // tucked into the bottom of the left HUD bar
+        hint = text("Q QUIT\nL LEADERBOARD\nM MUTE", textSize = 8.0, color = RetroTheme.dim, font = RetroTheme.font)
+            .xy(14, screenHeight - 52)   // tucked into the bottom of the left HUD bar
         refreshHud()
         showIntro()
         introCooldown = INTRO_INPUT_DELAY   // only on first load: ignore a stray pointer/key event
@@ -119,6 +119,7 @@ class GameScene : Scene() {
     }
 
     private fun onKeyDown(event: KeyEvent) {
+        if (event.key == Key.M) return toggleMute()   // mute works in any phase
         when (phase) {
             Phase.INTRO -> when (event.key) {
                 Key.ENTER, Key.SPACE, Key.S -> startPlaying()
@@ -172,9 +173,9 @@ class GameScene : Scene() {
 
     private fun spawn(seconds: Double) {
         spawnTimer += seconds
-        if (spawnTimer < spawnInterval) return
+        if (spawnTimer < state.config.spawnInterval) return
         spawnTimer = 0.0
-        val value = NumberGenerator.randomValue()
+        val value = NumberGenerator.randomValue(state.config)
         val x = Random.nextDouble(hudWidth, screenWidth - enemySize)
         val speedFactor = Random.nextDouble(MIN_SPEED_FACTOR, MAX_SPEED_FACTOR)   // a little drift-speed variety per balloon
         enemies.add(Enemy(world.balloon(value, enemySize, x), value, speedFactor))
@@ -192,9 +193,10 @@ class GameScene : Scene() {
         }
     }
 
-    /** Balloons drift a little faster the longer the run lasts, easing up to a gentle cap. */
+    /** Balloons drift a little faster the longer the run lasts, easing up to the level's cap. */
     private fun currentEnemySpeed(): Double =
-        (enemySpeed + elapsedMs / 1000.0 * SPEED_RAMP_PER_SECOND).coerceAtMost(MAX_ENEMY_SPEED)
+        (state.config.baseEnemySpeed + elapsedMs / 1000.0 * SPEED_RAMP_PER_SECOND)
+            .coerceAtMost(state.config.maxEnemySpeed)
 
     private fun moveEnemies(seconds: Double) {
         val baseSpeed = currentEnemySpeed()
@@ -225,10 +227,25 @@ class GameScene : Scene() {
 
     private fun react(outcome: ShotOutcome) {
         when (outcome) {
-            ShotOutcome.CLEARED -> if (state.hasWon) onWin() else flash("WIN!", RetroTheme.green)
+            ShotOutcome.CLEARED -> onRoundCleared()
             ShotOutcome.CONTINUE -> {}
         }
         refreshHud()
+    }
+
+    private fun onRoundCleared() {
+        when {
+            state.hasWon -> onWin()
+            state.level > shownLevel -> { shownLevel = state.level; flash("LEVEL ${state.level}", RetroTheme.amber) }
+            else -> flash("WIN!", RetroTheme.green)
+        }
+    }
+
+    private fun toggleMute() {
+        muted = !muted
+        sfx.muted = muted
+        music.setMuted(muted)
+        flash(if (muted) "SOUND OFF" else "SOUND ON", RetroTheme.cyan)
     }
 
     private fun onShipHit() {
@@ -297,6 +314,7 @@ class GameScene : Scene() {
         enemies.clear()
         spawnTimer = 0.0
         elapsedMs = 0.0
+        shownLevel = 1
         state.reset()
         message.text = ""
         phase = Phase.INTRO
@@ -396,7 +414,6 @@ class GameScene : Scene() {
         const val FLASH_SECONDS = 1.1
         const val INTRO_INPUT_DELAY = 0.5
         const val SPEED_RAMP_PER_SECOND = 0.8   // balloons gain this many px/s for each second played
-        const val MAX_ENEMY_SPEED = 95.0        // gentle cap so it never gets unfair
         const val MIN_SPEED_FACTOR = 0.85       // per-balloon speed spread, kept modest
         const val MAX_SPEED_FACTOR = 1.2
     }

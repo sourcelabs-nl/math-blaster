@@ -35,7 +35,7 @@ class Hud(container: Container, width: Double, height: Double) {
     fun update(state: GameState, timeMillis: Int) {
         accView.text = "${state.accumulator}"
         targetView.text = "${state.target}"
-        statsView.text = "LIVES  ${state.lives}\nSCORE  ${state.score}/25"
+        statsView.text = "LEVEL  ${state.level}\nLIVES  ${state.lives}\nSCORE  ${state.score}/25"
         timeView.text = "TIME ${formatTime(timeMillis)}"
     }
 }

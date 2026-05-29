@@ -15,10 +15,22 @@ import kotlin.math.sin
 class Music private constructor(private val loop: Sound) {
 
     private var channel: SoundChannel? = null
+    private var muted = false
 
     /** Begin looping forever. Safe to call repeatedly: only the first call starts playback. */
     fun start() {
         if (channel == null) channel = loop.playNoCancelForever()
+        applyVolume()
+    }
+
+    /** Silence or restore the music without stopping the loop, so unmuting resumes in place. */
+    fun setMuted(muted: Boolean) {
+        this.muted = muted
+        applyVolume()
+    }
+
+    private fun applyVolume() {
+        channel?.volume = if (muted) 0.0 else 1.0
     }
 
     companion object {

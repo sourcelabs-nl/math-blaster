@@ -1,5 +1,6 @@
 package game.model
 
+import game.logic.LevelConfigs
 import game.logic.NumberGenerator
 import game.logic.RoundEvaluator
 import game.logic.ShotOutcome
@@ -22,6 +23,14 @@ class GameState(
 
     /** True once enough rounds are cleared to win: the timed run is complete. */
     val hasWon: Boolean get() = score >= WIN_SCORE
+
+    private val roundsCleared: Int get() = score / POINTS_PER_ROUND
+
+    /** The current difficulty level, derived from how many rounds have been cleared. */
+    val level: Int get() = LevelConfigs.levelForRoundsCleared(roundsCleared)
+
+    /** The rules (number set, target range, pacing) for the current level. */
+    val config: LevelConfig get() = LevelConfigs.configFor(level)
 
     init {
         newTarget()
@@ -54,7 +63,7 @@ class GameState(
     }
 
     private fun newTarget() {
-        target = NumberGenerator.randomTarget(random)
+        target = NumberGenerator.randomTarget(config, random)
     }
 
     private companion object {
