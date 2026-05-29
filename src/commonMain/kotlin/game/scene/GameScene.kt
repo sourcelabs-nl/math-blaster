@@ -2,7 +2,6 @@ package game.scene
 
 import game.audio.Music
 import game.audio.Sfx
-import game.logic.NumberGenerator
 import game.logic.ShotOutcome
 import game.logic.formatTime
 import game.model.GameState
@@ -13,13 +12,11 @@ import game.view.IntroActions
 import game.view.IntroViewData
 import game.view.LeaderboardViewData
 import game.view.RetroTheme
-import game.view.balloon
 import game.view.confirmView
 import game.view.goodbyeView
 import game.view.introView
 import game.view.leaderboardView
 import game.view.nameEntryView
-import game.view.playerShip
 import game.view.recenterAt
 import game.view.starfield
 import korlibs.event.Key
@@ -32,21 +29,18 @@ import korlibs.korge.scene.Scene
 import korlibs.korge.service.storage.storage
 import korlibs.korge.view.Container
 import korlibs.korge.view.SContainer
-import korlibs.korge.view.SolidRect
 import korlibs.korge.view.Text
-import korlibs.korge.view.View
 import korlibs.korge.view.addUpdater
 import korlibs.korge.view.container
-import korlibs.korge.view.solidRect
 import korlibs.korge.view.text
 import korlibs.korge.view.xy
-import kotlin.random.Random
 import kotlin.time.DurationUnit
 
 /**
- * Wires the game together: the intro, input, the per-frame loop, spawning, collisions, and the
- * win/leaderboard flow. Rules live in [GameState], rendering in the view package, audio in
- * [Sfx], persistence in [LeaderboardStorage]; this scene only orchestrates them through [phase].
+ * Wires the game together: the intro, input routing, the per-frame loop, and the
+ * win/leaderboard flow. The live simulation (ship, bullets, falling numbers, collisions) lives
+ * in [Playfield]; rules live in [GameState], rendering in the view package, audio in [Sfx],
+ * persistence in [LeaderboardStorage]. This scene only orchestrates them through [phase].
  */
 class GameScene : Scene() {
 
@@ -55,33 +49,23 @@ class GameScene : Scene() {
     private val screenWidth = 960.0
     private val screenHeight = 600.0
     private val hudWidth = 150.0          // left column reserved for the HUD (no balloons here)
-
-    private val playerWidth = 40.0
-    private val playerHeight = 28.0
-    private val bulletSpeed = 460.0       // px/s, travels up
-    private val enemySize = 46.0
-    private val maxNameLength = 8         // balloon fall speed and spawn rate now come from the level config
+    private val maxNameLength = 8
 
     private val state = GameState()
-    private val bullets = mutableListOf<SolidRect>()
-    private val enemies = mutableListOf<Enemy>()
-    private var spawnTimer = 0.0
     private var messageTimer = 0.0
     private var introCooldown = 0.0       // briefly ignores input so a stray load event can't auto-start
     private var quitFromPlaying = false   // where to return if the player cancels the quit prompt
-    private var elapsedMs = 0.0
     private var phase = Phase.INTRO
     private var typedName = ""
     private var shownLevel = 1            // last level announced, so the level-up flash fires once
     private var muted = false
-    private var pointerX: Double? = null  // latest pointer x while playing; null until the pointer steers
     private var tapStartedPlaying = false // a tap begun while playing fires the gun on release
 
     private lateinit var world: SContainer
     private lateinit var sfx: Sfx
     private lateinit var music: Music
     private lateinit var hud: Hud
-    private lateinit var player: View
+    private lateinit var playfield: Playfield
     private lateinit var message: Text
     private lateinit var hint: Text
     private lateinit var leaderboard: LeaderboardStorage
@@ -92,8 +76,6 @@ class GameScene : Scene() {
         INTRO, PLAYING, PAUSED, ENTERING_NAME, FINISHED, LEADERBOARD, CONFIRM_QUIT, QUIT,
     }
 
-    private class Enemy(val view: View, val value: Int, val speedFactor: Double)
-
     override suspend fun SContainer.sceneMain() {
         world = this
         RetroTheme.load()
@@ -102,8 +84,7 @@ class GameScene : Scene() {
         leaderboard = LeaderboardStorage(views.storage)
         starfield(screenWidth, screenHeight)
         hud = Hud(this, hudWidth, screenHeight)
-        player = playerShip(playerWidth, playerHeight)
-            .xy((hudWidth + screenWidth - playerWidth) / 2, screenHeight - 40)
+        playfield = Playfield(world, PlayArea(screenWidth, screenHeight, hudWidth), state, sfx, ::react, ::onShipHit)
         message = text("", textSize = 20.0, color = RetroTheme.amber, font = RetroTheme.font)
         hint = text("Q QUIT\nL LEADERBOARD\nM MUTE", textSize = 8.0, color = RetroTheme.dim, font = RetroTheme.font)
             .xy(14, screenHeight - 52)   // tucked into the bottom of the left HUD bar
@@ -112,7 +93,7 @@ class GameScene : Scene() {
         introCooldown = INTRO_INPUT_DELAY   // only on first load: ignore a stray pointer/key event
 
         keys {
-            justDown(Key.SPACE) { if (phase == Phase.PLAYING) fire() }
+            justDown(Key.SPACE) { if (phase == Phase.PLAYING) playfield.fire() }
             down { event -> onKeyDown(event) }
         }
         world.mouse {
@@ -156,105 +137,25 @@ class GameScene : Scene() {
 
     private fun step(seconds: Double) {
         if (phase != Phase.PLAYING) return
-        elapsedMs += seconds * 1000
-        movePlayer(seconds)
-        spawn(seconds)
-        moveBullets(seconds)
-        moveEnemies(seconds)
-        checkHits()
+        val keys = views.input.keys
+        playfield.update(seconds, keys[Key.LEFT], keys[Key.RIGHT])
         tickMessage(seconds)
         refreshHud()
-    }
-
-    private fun movePlayer(seconds: Double) {
-        val delta = 300.0 * seconds
-        val keys = views.input.keys
-        when {
-            keys[Key.LEFT] -> { player.x = (player.x - delta).coerceAtLeast(hudWidth); pointerX = null }
-            keys[Key.RIGHT] -> { player.x = (player.x + delta).coerceAtMost(screenWidth - playerWidth); pointerX = null }
-            else -> pointerX?.let { player.x = it - playerWidth / 2 }   // otherwise track the pointer
-        }
     }
 
     private fun onPointerDown(event: MouseEvents) {
         if (phase != Phase.PLAYING || introCooldown > 0) return
         tapStartedPlaying = true
-        aimAt(event.currentPosLocal.x)
+        playfield.aimAt(event.currentPosLocal.x)
     }
 
     private fun onPointerMove(event: MouseEvents) {
-        if (phase == Phase.PLAYING) aimAt(event.currentPosLocal.x)
+        if (phase == Phase.PLAYING) playfield.aimAt(event.currentPosLocal.x)
     }
 
     private fun onPointerUp() {
-        if (tapStartedPlaying && phase == Phase.PLAYING) fire()
+        if (tapStartedPlaying && phase == Phase.PLAYING) playfield.fire()
         tapStartedPlaying = false
-    }
-
-    /** Steer the ship so its center tracks the pointer x, clamped to the play area. */
-    private fun aimAt(x: Double) {
-        pointerX = x.coerceIn(hudWidth + playerWidth / 2, screenWidth - playerWidth / 2)
-    }
-
-    private fun fire() {
-        val bullet = world.solidRect(4.0, 14.0, RetroTheme.amber)
-            .xy(player.x + playerWidth / 2 - 2, player.y - 14)
-        bullets.add(bullet)
-        sfx.shoot()
-    }
-
-    private fun spawn(seconds: Double) {
-        spawnTimer += seconds
-        if (spawnTimer < state.config.spawnInterval) return
-        spawnTimer = 0.0
-        val value = NumberGenerator.randomValue(state.config)
-        val x = Random.nextDouble(hudWidth, screenWidth - enemySize)
-        val speedFactor = Random.nextDouble(MIN_SPEED_FACTOR, MAX_SPEED_FACTOR)   // a little drift-speed variety per balloon
-        enemies.add(Enemy(world.balloon(value, enemySize, x), value, speedFactor))
-    }
-
-    private fun moveBullets(seconds: Double) {
-        val iter = bullets.iterator()
-        while (iter.hasNext()) {
-            val bullet = iter.next()
-            bullet.y -= bulletSpeed * seconds
-            if (bullet.y + 14 < 0) {
-                bullet.removeFromParent()
-                iter.remove()
-            }
-        }
-    }
-
-    /** Balloons drift a little faster the longer the run lasts, easing up to the level's cap. */
-    private fun currentEnemySpeed(): Double =
-        (state.config.baseEnemySpeed + elapsedMs / 1000.0 * SPEED_RAMP_PER_SECOND)
-            .coerceAtMost(state.config.maxEnemySpeed)
-
-    private fun moveEnemies(seconds: Double) {
-        val baseSpeed = currentEnemySpeed()
-        val iter = enemies.iterator()
-        while (iter.hasNext()) {
-            val enemy = iter.next()
-            enemy.view.y += baseSpeed * enemy.speedFactor * seconds
-            when {
-                hitsPlayer(enemy.view) -> { despawn(enemy, iter); onShipHit(); if (phase != Phase.PLAYING) return }
-                enemy.view.y > screenHeight -> despawn(enemy, iter)   // fell past the ship: no penalty
-            }
-        }
-    }
-
-    private fun checkHits() {
-        val iter = bullets.iterator()
-        while (iter.hasNext()) {
-            val bullet = iter.next()
-            val hit = enemies.firstOrNull { overlaps(bullet, it.view) } ?: continue
-            bullet.removeFromParent()
-            iter.remove()
-            hit.view.removeFromParent()
-            enemies.remove(hit)
-            sfx.pop()
-            react(state.applyShot(hit.value))
-        }
     }
 
     private fun react(outcome: ShotOutcome) {
@@ -280,10 +181,13 @@ class GameScene : Scene() {
         flash(if (muted) "SOUND OFF" else "SOUND ON", RetroTheme.cyan)
     }
 
-    private fun onShipHit() {
+    /** Lose a life when a number reaches the ship. Returns true if the run continues. */
+    private fun onShipHit(): Boolean {
         state.loseLife()
-        if (state.isGameOver) onGameOver() else flash("HIT! -1 LIFE", RetroTheme.magenta)
+        if (state.isGameOver) { onGameOver(); refreshHud(); return false }
+        flash("HIT! -1 LIFE", RetroTheme.magenta)
         refreshHud()
+        return true
     }
 
     private fun onWin() {
@@ -291,7 +195,7 @@ class GameScene : Scene() {
         typedName = ""
         message.text = ""
         clearOverlay()
-        overlay = world.container { nameField = nameEntryView(screenWidth, screenHeight, formatTime(elapsedMs.toInt())) }
+        overlay = world.container { nameField = nameEntryView(screenWidth, screenHeight, formatTime(playfield.elapsedMs.toInt())) }
     }
 
     // Reads the typed key, not event.character: KorGE only fills character on TYPE events, but
@@ -316,7 +220,7 @@ class GameScene : Scene() {
 
     private fun confirmName() {
         val name = typedName.trim().ifEmpty { "ANON" }
-        val entry = LeaderboardEntry(name, elapsedMs.toInt())
+        val entry = LeaderboardEntry(name, playfield.elapsedMs.toInt())
         phase = Phase.FINISHED
         showLeaderboard("YOU WIN!", leaderboard.save(entry), highlight = entry, footer = "PRESS R TO PLAY AGAIN")
     }
@@ -340,14 +244,8 @@ class GameScene : Scene() {
     }
 
     private fun restart() {
-        bullets.forEach { it.removeFromParent() }
-        enemies.forEach { it.view.removeFromParent() }
-        bullets.clear()
-        enemies.clear()
-        spawnTimer = 0.0
-        elapsedMs = 0.0
+        playfield.reset()
         shownLevel = 1
-        pointerX = null
         tapStartedPlaying = false
         state.reset()
         message.text = ""
@@ -413,20 +311,7 @@ class GameScene : Scene() {
         views.gameWindow.close(0)
     }
 
-    private fun despawn(enemy: Enemy, iter: MutableIterator<Enemy>) {
-        enemy.view.removeFromParent()
-        iter.remove()
-    }
-
-    private fun hitsPlayer(enemy: View): Boolean =
-        enemy.x < player.x + playerWidth && enemy.x + enemySize > player.x &&
-            enemy.y < player.y + playerHeight && enemy.y + enemySize > player.y
-
-    private fun overlaps(bullet: SolidRect, enemy: View): Boolean =
-        bullet.x < enemy.x + enemySize && bullet.x + 4 > enemy.x &&
-            bullet.y < enemy.y + enemySize && bullet.y + 14 > enemy.y
-
-    private fun refreshHud() = hud.update(state, elapsedMs.toInt())
+    private fun refreshHud() = hud.update(state, playfield.elapsedMs.toInt())
 
     /** Show a brief, colored status message centered in the play area. It fades on its own. */
     private fun flash(text: String, color: RGBA) {
@@ -447,8 +332,5 @@ class GameScene : Scene() {
     private companion object {
         const val FLASH_SECONDS = 1.1
         const val INTRO_INPUT_DELAY = 0.5
-        const val SPEED_RAMP_PER_SECOND = 0.8   // balloons gain this many px/s for each second played
-        const val MIN_SPEED_FACTOR = 0.85       // per-balloon speed spread, kept modest
-        const val MAX_SPEED_FACTOR = 1.2
     }
 }

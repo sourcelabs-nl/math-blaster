@@ -36,6 +36,18 @@ Rules for working with Kotlin source files in this repository. These apply to al
 - Prefer many small, named functions over one long function with comment-separated sections.
   The function name is the comment.
 
+## Type and file size
+
+- Keep one clear responsibility per class. As a rule of thumb, a `.kt` file over ~200 lines, or
+  a class with more than ~15 methods, is a signal it has absorbed several responsibilities: find
+  a cohesive cluster of fields and methods and extract it into its own type.
+- **Scenes grow fastest.** Keep a `Scene` as a thin orchestrator (lifecycle, wiring, phase and
+  screen transitions) and push the simulation (entities, movement, collisions) into its own
+  engine-facing class, and any pure text/state editing into `logic`. For example, the live
+  playfield lives in `Playfield`, not in `GameScene`.
+- Split along responsibility seams (input, simulation, presentation, flow), not at an arbitrary
+  line count: the line and method counts are smells that prompt the look, not hard limits.
+
 ## Signatures and parameters
 
 - When a parameter list grows wide (more than 4-5 related parameters), wrap them in a
