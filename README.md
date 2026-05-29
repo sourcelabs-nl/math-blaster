@@ -4,6 +4,8 @@ A retro arcade shooter where the ammo is arithmetic. Hit a **target** number by
 blasting falling numbers and adding them up, but don't let them reach your ship.
 It's mental math disguised as an 80s space game.
 
+**▶ [Play it in your browser](https://sourcelabs-nl.github.io/math-blaster/)**
+
 ![The Math Blaster title screen](docs/screenshots/01-intro.png)
 
 ## The idea
