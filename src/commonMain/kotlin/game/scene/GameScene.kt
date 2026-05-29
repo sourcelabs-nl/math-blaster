@@ -88,7 +88,7 @@ class GameScene : Scene() {
         INTRO, PLAYING, PAUSED, ENTERING_NAME, FINISHED, LEADERBOARD, CONFIRM_QUIT, QUIT,
     }
 
-    private class Enemy(val view: View, val value: Int)
+    private class Enemy(val view: View, val value: Int, val speedFactor: Double)
 
     override suspend fun SContainer.sceneMain() {
         world = this
@@ -176,7 +176,8 @@ class GameScene : Scene() {
         spawnTimer = 0.0
         val value = NumberGenerator.randomValue()
         val x = Random.nextDouble(hudWidth, screenWidth - enemySize)
-        enemies.add(Enemy(world.balloon(value, enemySize, x), value))
+        val speedFactor = Random.nextDouble(MIN_SPEED_FACTOR, MAX_SPEED_FACTOR)   // a little drift-speed variety per balloon
+        enemies.add(Enemy(world.balloon(value, enemySize, x), value, speedFactor))
     }
 
     private fun moveBullets(seconds: Double) {
@@ -196,11 +197,11 @@ class GameScene : Scene() {
         (enemySpeed + elapsedMs / 1000.0 * SPEED_RAMP_PER_SECOND).coerceAtMost(MAX_ENEMY_SPEED)
 
     private fun moveEnemies(seconds: Double) {
-        val speed = currentEnemySpeed()
+        val baseSpeed = currentEnemySpeed()
         val iter = enemies.iterator()
         while (iter.hasNext()) {
             val enemy = iter.next()
-            enemy.view.y += speed * seconds
+            enemy.view.y += baseSpeed * enemy.speedFactor * seconds
             when {
                 hitsPlayer(enemy.view) -> { despawn(enemy, iter); onShipHit(); if (phase != Phase.PLAYING) return }
                 enemy.view.y > screenHeight -> despawn(enemy, iter)   // fell past the ship: no penalty
@@ -396,5 +397,7 @@ class GameScene : Scene() {
         const val INTRO_INPUT_DELAY = 0.5
         const val SPEED_RAMP_PER_SECOND = 0.8   // balloons gain this many px/s for each second played
         const val MAX_ENEMY_SPEED = 95.0        // gentle cap so it never gets unfair
+        const val MIN_SPEED_FACTOR = 0.85       // per-balloon speed spread, kept modest
+        const val MAX_SPEED_FACTOR = 1.2
     }
 }
