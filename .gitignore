@@ -14,6 +14,9 @@ kotlin-js-store/
 # OS
 .DS_Store
 
+# Playwright MCP (browser snapshots / screenshots from local verification)
+.playwright-mcp/
+
 # Claude: override the global ~/.gitignore_global rule that ignores .claude/
 # so .claude config is tracked here, but exclude local-only files.
 !.claude/
