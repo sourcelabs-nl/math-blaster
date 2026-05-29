@@ -58,11 +58,39 @@ code is compiled to two targets:
 - A **desktop (JVM)** build for a fast write-and-run loop while developing.
 - A **WebAssembly** build, which is what players actually run.
 
-For the web, Kotlin compiles the game to **real WebAssembly** (the WasmGC flavor, supported by
-all major browsers). The browser loads a small bootstrap script that fetches the `.wasm` module,
-starts the game, and hands it a canvas to draw on. There is no server doing any of the work:
-once the page has loaded, everything (the game loop, the math, the sound synthesis, saving your
-times) runs locally in your browser.
+### Kotlin Multiplatform
+
+Targeting more than one platform from a single codebase is what **Kotlin Multiplatform** (KMP)
+is for. Instead of the usual single-platform `src/main` / `src/test` layout, a KMP module
+organizes code by **source set**, named `<target>Main` and `<target>Test`:
+
+```
+src/
+  commonMain/kotlin/    # shared code compiled to EVERY target
+  commonTest/kotlin/    # shared tests run on every target
+  wasmJsMain/kotlin/    # Wasm-only glue for the web build
+```
+
+The `common*` source sets are the heart of it: anything in `commonMain` must compile to all
+targets, so almost the entire game lives there, including its entry point. This is the practical
+reason the pure `logic` and `model` packages stay engine-free and KorGE-light: code that compiles
+cleanly to common runs unchanged on both the JVM and in the browser, and `commonTest` exercises
+it the same way everywhere. The JVM (desktop dev) target runs straight from `commonMain` with no
+source set of its own, while a small `wasmJsMain` holds the bit of platform glue the web build
+needs. New per-target source sets follow the same `<target>Main` / `<target>Test` naming if they
+are ever added.
+
+### WebAssembly
+
+For the web, Kotlin compiles the game to **real WebAssembly** rather than to JavaScript. It uses
+the **WasmGC** flavor (WebAssembly with built-in garbage collection), which lets a managed
+language like Kotlin run efficiently without shipping its own memory manager. WasmGC has been
+supported by all major browsers since late 2024.
+
+The browser loads a small bootstrap script that fetches the `.wasm` module, starts the game, and
+hands it a canvas to draw on. There is no server doing any of the work: once the page has loaded,
+everything (the game loop, the math, the sound synthesis, saving your times) runs locally in your
+browser.
 
 Because all of that is static, the game is published as a plain set of files (one HTML page, the
 WebAssembly module, and a bit of glue) to **GitHub Pages**. A continuous-integration workflow
