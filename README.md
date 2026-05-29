@@ -18,6 +18,10 @@ arcade speed.
 Some numbers are negative, so you can always correct a miss: a target of 8 can be
 reached as `+4 +4` or `+9 -1`. Positives are blue, negatives are pink.
 
+Clear a few rounds and the game steps up to **Level 2**, swapping in bigger
+denomination-style numbers (5, 10, 25, 50, 100, 250, 500), positive and negative, for
+tougher sums at a faster pace.
+
 ## How to play
 
 | Key | Action |
@@ -25,6 +29,7 @@ reached as `+4 +4` or `+9 -1`. Positives are blue, negatives are pink.
 | **Arrow keys** | Move your ship left and right |
 | **Space** | Fire |
 | **L** | Peek at the leaderboard |
+| **M** | Mute / unmute the sound |
 | **Q** | Quit |
 
 - **Shoot numbers** to add their value to your total (shown top-left).

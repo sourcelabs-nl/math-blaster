@@ -37,3 +37,13 @@ complies with browsers that block audio until a user gesture.
 
 - **WHEN** the player starts a game from the intro
 - **THEN** the background music begins to loop
+
+### Requirement: Mute control
+
+The game SHALL let the player mute and unmute all audio at any time with a single key, and
+SHALL resume the music in place when unmuted.
+
+#### Scenario: Muting all audio
+
+- **WHEN** the player presses the mute key
+- **THEN** the music and sound effects fall silent until the player unmutes

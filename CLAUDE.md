@@ -14,13 +14,15 @@ storage only, no backend, hosted on an office-accessible webserver).
 
 ### Game concept
 
-- You are given a **target** number. Signed numbers (-10..10) drift down toward your ship.
+- You are given a **target** number. Signed numbers drift down toward your ship.
 - You **shoot** numbers to add their value to a running **accumulator**.
 - Land on the target **exactly** to clear the round and get a new target.
-- **Overshooting busts you and costs a life** (start with 3 lives; accumulator resets to 0).
+- **Overshooting is allowed** and costs nothing; shoot a negative to come back down. You lose a
+  life only when a falling number reaches your ship (start with 3 lives).
 - Negatives let you correct, so target `8` can be solved as `+4 +4` or `+9 -1`.
-- Difficulty ramps by level: **Level 1** is addition/subtraction (signed numbers), **Level 2**
-  introduces **multiplication**, later levels increase speed, spawn rate, and number range.
+- Difficulty has two levels: **Level 1** is signed numbers 1..10; after a few rounds **Level 2**
+  brings larger denomination numbers (5, 10, 25, 50, 100, 250, 500), positive and negative, with
+  bigger targets and a faster pace.
 - Simple arithmetic, gamified.
 
 ## Toolstack
@@ -48,6 +50,19 @@ is required here. This is the one accepted deviation; the rest of the global rul
   `LevelConfig` data class rather than long positional argument lists.
 - No em-dashes in prose or documentation. Use commas, colons, or parentheses.
 - Do not do large refactors unless explicitly asked.
+
+## Keep docs in sync with the code
+
+When a change alters observable behavior, controls, or game rules, update the docs in the same
+change, do not leave them for later:
+
+- **README.md**: the player-facing description, controls, and screenshots.
+- **OpenSpec specs** under `openspec/specs`: add or amend the affected capability spec and keep
+  `openspec validate --specs` passing.
+- **This file and `docs/`**: the game concept and technical overview when the architecture or
+  rules shift.
+
+A change is not done until the code, the README, and the specs agree.
 
 ## Project layout (target)
 

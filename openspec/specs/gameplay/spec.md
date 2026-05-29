@@ -81,11 +81,29 @@ score.
 - **WHEN** the player clears the final required round
 - **THEN** the run is won and the player is invited to record their time
 
-### Requirement: Increasing difficulty
+### Requirement: Difficulty levels
 
-The game SHALL make the falling numbers descend faster the longer a run lasts, up to a gentle
-cap, and SHALL give individual numbers a small random speed variation so they do not fall in
-lockstep.
+The game SHALL progress through two difficulty levels within a single run. Level 1 uses small
+signed numbers (magnitude 1 to 10). After a set number of rounds are cleared the game SHALL
+advance to Level 2, which keeps the same add-up-to-the-target loop but uses larger
+denomination-style numbers (5, 10, 25, 50, 100, 250, 500), positive and negative, with larger
+targets and a faster pace. The current level SHALL be shown to the player.
+
+#### Scenario: Starting on Level 1
+
+- **WHEN** a run begins
+- **THEN** small signed numbers fall and the displayed level is 1
+
+#### Scenario: Advancing to Level 2
+
+- **WHEN** the player clears enough rounds to advance
+- **THEN** the larger denomination numbers begin to fall and the displayed level is 2
+
+### Requirement: Speed ramp and variety
+
+The game SHALL make the falling numbers descend faster the longer a run lasts, up to the
+current level's cap, and SHALL give individual numbers a small random speed variation so they
+do not fall in lockstep.
 
 #### Scenario: Speed ramps over time
 
