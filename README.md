@@ -48,3 +48,9 @@ leaderboard, and the fastest run sits proudly at the top.
 - Speed matters more than safety once you're good. The leaderboard rewards the bold.
 
 Have fun, and mind the math.
+
+## Under the hood
+
+Curious how it's built and how it runs as WebAssembly in the browser? See the
+[technical overview](docs/technical-overview.md). The game's behavior is also captured as
+validated capability specs under [`openspec/specs`](openspec/specs).
