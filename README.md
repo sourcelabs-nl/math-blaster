@@ -22,6 +22,8 @@ Clear a few rounds and the game steps up to **Level 2**, swapping in bigger
 denomination-style numbers (5, 10, 25, 50, 100, 250, 500), positive and negative, for
 tougher sums at a faster pace.
 
+![Level 2 with larger denomination numbers](docs/screenshots/04-level-two.png)
+
 ## How to play
 
 | Key | Action |
