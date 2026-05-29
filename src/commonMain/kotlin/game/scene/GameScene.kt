@@ -25,7 +25,9 @@ import game.view.starfield
 import korlibs.event.Key
 import korlibs.event.KeyEvent
 import korlibs.image.color.RGBA
+import korlibs.korge.input.MouseEvents
 import korlibs.korge.input.keys
+import korlibs.korge.input.mouse
 import korlibs.korge.scene.Scene
 import korlibs.korge.service.storage.storage
 import korlibs.korge.view.Container
@@ -72,6 +74,8 @@ class GameScene : Scene() {
     private var typedName = ""
     private var shownLevel = 1            // last level announced, so the level-up flash fires once
     private var muted = false
+    private var pointerX: Double? = null  // latest pointer x while playing; null until the pointer steers
+    private var tapStartedPlaying = false // a tap begun while playing fires the gun on release
 
     private lateinit var world: SContainer
     private lateinit var sfx: Sfx
@@ -110,6 +114,11 @@ class GameScene : Scene() {
         keys {
             justDown(Key.SPACE) { if (phase == Phase.PLAYING) fire() }
             down { event -> onKeyDown(event) }
+        }
+        world.mouse {
+            down { onPointerDown(it) }   // drag steers the ship, a tap fires: works with a mouse or on touch
+            move { onPointerMove(it) }
+            up { onPointerUp() }
         }
         addUpdater { dt ->
             val seconds = dt.toDouble(DurationUnit.SECONDS)
@@ -160,8 +169,31 @@ class GameScene : Scene() {
     private fun movePlayer(seconds: Double) {
         val delta = 300.0 * seconds
         val keys = views.input.keys
-        if (keys[Key.LEFT]) player.x = (player.x - delta).coerceAtLeast(hudWidth)
-        if (keys[Key.RIGHT]) player.x = (player.x + delta).coerceAtMost(screenWidth - playerWidth)
+        when {
+            keys[Key.LEFT] -> { player.x = (player.x - delta).coerceAtLeast(hudWidth); pointerX = null }
+            keys[Key.RIGHT] -> { player.x = (player.x + delta).coerceAtMost(screenWidth - playerWidth); pointerX = null }
+            else -> pointerX?.let { player.x = it - playerWidth / 2 }   // otherwise track the pointer
+        }
+    }
+
+    private fun onPointerDown(event: MouseEvents) {
+        if (phase != Phase.PLAYING || introCooldown > 0) return
+        tapStartedPlaying = true
+        aimAt(event.currentPosLocal.x)
+    }
+
+    private fun onPointerMove(event: MouseEvents) {
+        if (phase == Phase.PLAYING) aimAt(event.currentPosLocal.x)
+    }
+
+    private fun onPointerUp() {
+        if (tapStartedPlaying && phase == Phase.PLAYING) fire()
+        tapStartedPlaying = false
+    }
+
+    /** Steer the ship so its center tracks the pointer x, clamped to the play area. */
+    private fun aimAt(x: Double) {
+        pointerX = x.coerceIn(hudWidth + playerWidth / 2, screenWidth - playerWidth / 2)
     }
 
     private fun fire() {
@@ -315,6 +347,8 @@ class GameScene : Scene() {
         spawnTimer = 0.0
         elapsedMs = 0.0
         shownLevel = 1
+        pointerX = null
+        tapStartedPlaying = false
         state.reset()
         message.text = ""
         phase = Phase.INTRO

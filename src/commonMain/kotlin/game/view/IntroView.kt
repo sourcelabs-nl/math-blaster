@@ -40,6 +40,7 @@ private fun Container.briefing(data: IntroViewData) {
     centeredText("SHOOT NUMBERS TO ADD THEM UP", 9.0, RetroTheme.text, cx, 300.0)
     centeredText("NEGATIVES CORRECT AN OVERSHOOT", 9.0, RetroTheme.cyan, cx, 325.0)
     centeredText("ARROWS MOVE    SPACE FIRES", 9.0, RetroTheme.text, cx, 350.0)
+    centeredText("ON TOUCH: DRAG TO MOVE    TAP TO FIRE", 9.0, RetroTheme.dim, cx, 370.0)
     button("START", RetroTheme.green, cx, 405.0, data.actions.onOk)
     button("QUIT", RetroTheme.magenta, cx, 470.0, data.actions.onQuit)
 }

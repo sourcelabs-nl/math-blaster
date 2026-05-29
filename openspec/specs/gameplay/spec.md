@@ -51,6 +51,27 @@ and start a new round. Overshooting the target is allowed and carries no penalty
 - **THEN** the round is not cleared and no life is lost
 - **AND** the player can shoot a negative number to come back down
 
+### Requirement: Player controls
+
+The game SHALL let the player move the ship horizontally and fire, using either the keyboard or
+a pointer (mouse or touch), so it is playable on a phone or tablet as well as a desktop.
+
+#### Scenario: Steering and firing with the keyboard
+
+- **WHEN** the player holds the left or right arrow key
+- **THEN** the ship moves in that direction, staying within the play area
+- **AND** pressing Space fires a shot
+
+#### Scenario: Steering with a pointer
+
+- **WHEN** the player drags left or right with the mouse or a finger
+- **THEN** the ship's center tracks the pointer's horizontal position, clamped to the play area
+
+#### Scenario: Firing with a tap
+
+- **WHEN** the player taps or clicks within the play area while playing
+- **THEN** a shot is fired
+
 ### Requirement: Lives and game over
 
 The game SHALL start the player with 3 lives and remove one life when a falling number reaches

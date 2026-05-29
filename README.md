@@ -34,6 +34,9 @@ tougher sums at a faster pace.
 | **M** | Mute / unmute the sound |
 | **Q** | Quit |
 
+On a phone or tablet you can play with touch alone: **drag left and right** to move your ship,
+and **tap** anywhere to fire.
+
 - **Shoot numbers** to add their value to your total (shown top-left).
 - **Reach the target exactly** to score and move on.
 - **Use negatives** to come back down if you overshoot.
