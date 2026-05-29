@@ -60,7 +60,7 @@ class GameScene : Scene() {
     private val enemySpeed = 50.0         // px/s, drifts down
     private val enemySize = 46.0
     private val spawnInterval = 1.6       // seconds between spawns
-    private val maxNameLength = 12
+    private val maxNameLength = 8
 
     private val state = GameState()
     private val bullets = mutableListOf<SolidRect>()

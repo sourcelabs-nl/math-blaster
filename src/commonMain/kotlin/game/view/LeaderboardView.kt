@@ -32,7 +32,7 @@ private fun Container.rows(data: LeaderboardViewData, centerX: Double) {
     data.entries.forEachIndexed { index, entry ->
         val color = if (entry == data.highlight) RetroTheme.amber else RetroTheme.text
         val rank = "${index + 1}".padStart(2)
-        val line = "$rank ${entry.name.padEnd(12)} ${formatTime(entry.timeMillis)}"
+        val line = "$rank ${entry.name.padEnd(8)} ${formatTime(entry.timeMillis)}"
         centeredText(line, 12.0, color, centerX, data.height * 0.26 + index * 24)
     }
 }

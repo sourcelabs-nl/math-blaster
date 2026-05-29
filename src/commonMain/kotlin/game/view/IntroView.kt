@@ -35,7 +35,7 @@ fun Container.introView(data: IntroViewData) {
 
 private fun Container.briefing(data: IntroViewData) {
     val cx = data.width * 0.34
-    centeredText("BLAST TILL YOU REACH:", 16.0, RetroTheme.dim, cx, 150.0)   // aligned with the LEADERBOARD title
+    centeredText("BLAST TILL YOU REACH", 16.0, RetroTheme.dim, cx, 150.0)   // aligned with the LEADERBOARD title
     centeredText("${data.target}", 60.0, RetroTheme.amber, cx, 195.0).blink()
     centeredText("SHOOT NUMBERS TO ADD THEM UP", 9.0, RetroTheme.text, cx, 300.0)
     centeredText("NEGATIVES CORRECT AN OVERSHOOT", 9.0, RetroTheme.cyan, cx, 325.0)
@@ -53,7 +53,7 @@ private fun Container.leaderboardColumn(data: IntroViewData) {
     }
     data.entries.forEachIndexed { index, entry ->
         val rank = "${index + 1}".padStart(2)
-        val line = "$rank ${entry.name.padEnd(12)} ${formatTime(entry.timeMillis)}"
+        val line = "$rank ${entry.name.padEnd(8)} ${formatTime(entry.timeMillis)}"
         centeredText(line, 11.0, RetroTheme.text, cx, 195.0 + index * 26)
     }
 }
