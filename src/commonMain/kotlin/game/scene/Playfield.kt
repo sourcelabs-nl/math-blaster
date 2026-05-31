@@ -40,7 +40,7 @@ class Playfield(
     private val bulletSpeed = 460.0   // px/s, travels up
     private val enemySize = 46.0
 
-    private val player: View = world.playerShip(playerWidth, playerHeight).also { centerPlayer() }
+    private val player: View = world.playerShip(playerWidth, playerHeight)
     private val bullets = mutableListOf<SolidRect>()
     private val enemies = mutableListOf<Enemy>()
     private var spawnTimer = 0.0
@@ -50,6 +50,10 @@ class Playfield(
         private set
 
     private class Enemy(val view: View, val value: Int, val speedFactor: Double)
+
+    init {
+        centerPlayer()
+    }
 
     /** Advance one frame: steer the ship, spawn, move shots and numbers, resolve collisions. */
     fun update(seconds: Double, leftHeld: Boolean, rightHeld: Boolean) {
